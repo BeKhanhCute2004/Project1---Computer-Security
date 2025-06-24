@@ -7,7 +7,7 @@ root.geometry("400x200")  # width x height
 
 # Tạo tiêu đề
 label = tk.Label(root, text="Xin chào!", font=("Segoe UI", 16))
-label.pack(pady=20)
+label.pack(pady=20) # Hiển thị các pack theo thứ tự trong cùng root hoặc frame
 
 # Nút nhấn
 def say_hello():

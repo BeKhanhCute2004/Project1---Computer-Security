@@ -1,6 +1,7 @@
 {
-  "kk291291@gmail.com": {
+  "hgkhanh22@clc.fitus.edu.vn": {
     "name": "Huỳnh Gia Khánh",
-    "passphrase": "Gkhanh308204!"
+    "salt": "1d51237b5e7984203f2197b2b9e9ddfc",
+    "pass_hash": "b8b6ea6b31ff440c1817463be96c1b0fdb3bec58839950ee78a143f1fecf6f3b"
   }
 }

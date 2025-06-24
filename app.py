@@ -2,8 +2,17 @@ import tkinter as tk
 import json
 import tkinter as tk
 from tkinter import messagebox
+import hashlib
+import secrets
+import datetime
 
 USER_DB = "users.json"
+
+# Hàm ghi log sự kiện vào file log.txt
+def log_event(message):
+    now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open("log.txt", "a", encoding="utf-8") as f:
+        f.write(f"[{now}] {message}\n")
 
 class App(tk.Tk):
     def __init__(self):
@@ -12,7 +21,7 @@ class App(tk.Tk):
         self.geometry("500x300")
         self.frames = {}
 
-        for F in (LoginFrame, RegisterFrame):
+        for F in (LoginFrame, RegisterFrame, DashboardFrame):
             frame = F(self)
             self.frames[F.__name__] = frame # __name__ hiển thị tên class hiện tại, thuộc tính có sẵn trong class
             frame.grid(row=0, column=0, sticky="nsew") # kéo frame full khung hình bắt đầu từ dòng 0 cột 0
@@ -48,11 +57,21 @@ class LoginFrame(tk.Frame):
             users = {}
 
         user = users.get(email)
-        if not user or user["passphrase"] != pw:
+        if not user:
             messagebox.showerror("Lỗi", "Sai email hoặc passphrase!")
+            return
+
+        salt = user["salt"]
+        pw_salted = pw + salt
+        pw_hash = hashlib.sha256(pw_salted.encode()).hexdigest()
+
+        if pw_hash != user["pass_hash"]:
+            messagebox.showerror("Lỗi", "Sai email hoặc passphrase!")
+            return
         else:
             messagebox.showinfo("Chào", f"Xin chào {user['name']}!")
-            # Chuyển sang dashboard nếu có sau này
+            self.master.show_frame("DashboardFrame")  # chuyển tới Dashboard
+        
 
 class RegisterFrame(tk.Frame):
     def __init__(self, master):
@@ -96,16 +115,38 @@ class RegisterFrame(tk.Frame):
             messagebox.showerror("Trùng email", "Email này đã được đăng ký.")
             return
 
+        salt = secrets.token_hex(16)  # 16 bytes = 32 ký tự hex, không dùng random vì không đủ an toàn, có thể đoán được seed.
+        pw_salted = pw + salt
+        pw_hash = hashlib.sha256(pw_salted.encode()).hexdigest() # Mã hóa mật khẩu bằng SHA-256, encode() chuyển chuỗi thành bytes sử dụng bảng mã mặc định utf8, hexdigest() chuyển kết quả thành chuỗi hex 64 ký tự.
+        # Lưu thông tin người dùng vào từ điển
         users[email] = {
             "name": name,
-            "passphrase": pw
+            "salt": salt,
+            "pass_hash": pw_hash
         }
 
         with open(USER_DB, "w", encoding="utf-8") as f:
             json.dump(users, f, indent=2, ensure_ascii=False) # ghi users vào f dưới dạng json. indent: thụt 2 space, ensure_ascii: Đảm bảo các ký tự tiếng Việt không bị chuyển thành mã ASCII.
 
         messagebox.showinfo("Thành công", "Đăng ký thành công!")
+        log_event(f"Đăng ký thành công: {email}")
         self.master.show_frame("LoginFrame")
+
+class DashboardFrame(tk.Frame):
+    def __init__(self, master):
+        super().__init__(master)
+        tk.Label(self, text="🛡️ DASHBOARD", font=("Segoe UI", 16)).pack(pady=20)
+
+        tk.Button(self, text="→ Mã hóa dữ liệu", command=self.dummy_encrypt).pack(pady=6)
+        tk.Button(self, text="→ Giải mã dữ liệu", command=self.dummy_decrypt).pack(pady=6)
+        tk.Button(self, text="Đăng xuất", command=lambda: master.show_frame("LoginFrame")).pack(pady=10)
+
+    def dummy_encrypt(self):
+        tk.messagebox.showinfo("Mã hóa", "Tính năng mã hóa đang được phát triển...")
+
+    def dummy_decrypt(self):
+        tk.messagebox.showinfo("Giải mã", "Tính năng giải mã đang được phát triển...")
+
 
 if __name__ == "__main__":
     app = App()
