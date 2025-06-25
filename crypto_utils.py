@@ -52,3 +52,34 @@ def generate_rsa_keys(email: str, passphrase: str):
         json.dump(info, f, indent=2)
 
     return True
+
+def reencrypt_private_key(email, old_pass, new_pass):
+    # load dữ liệu mã hóa cũ
+    with open(f"rsa_keys/{email}_private_enc.json", "r") as f:
+        enc = json.load(f)
+
+    from base64 import b64decode, b64encode
+    from Crypto.Cipher import AES
+    from Crypto.Protocol.KDF import PBKDF2
+    from Crypto.Random import get_random_bytes
+
+    # giải mã
+    old_key = PBKDF2(old_pass, b64decode(enc["salt"]), dkLen=32, count=100_000)
+    cipher = AES.new(old_key, AES.MODE_GCM, nonce=b64decode(enc["nonce"]))
+    private_key = cipher.decrypt_and_verify(b64decode(enc["ciphertext"]), b64decode(enc["tag"]))
+
+    # mã hóa lại với passphrase mới
+    new_salt = get_random_bytes(16)
+    new_key = PBKDF2(new_pass, new_salt, dkLen=32, count=100_000)
+    new_cipher = AES.new(new_key, AES.MODE_GCM)
+    new_ciphertext, new_tag = new_cipher.encrypt_and_digest(private_key)
+
+    new_enc = {
+        "salt": b64encode(new_salt).decode(),
+        "nonce": b64encode(new_cipher.nonce).decode(),
+        "tag": b64encode(new_tag).decode(),
+        "ciphertext": b64encode(new_ciphertext).decode()
+    }
+
+    with open(f"rsa_keys/{email}_private_enc.json", "w") as f:
+        json.dump(new_enc, f, indent=2)

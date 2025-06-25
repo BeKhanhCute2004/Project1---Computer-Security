@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter.simpledialog import askstring
 import json
-import tkinter as tk
+from tkinter import ttk # ttk là một phần mở rộng của tkinter, cung cấp các widget đẹp hơn
 from tkinter import messagebox
 import hashlib
 import secrets
@@ -10,6 +10,8 @@ import os
 from mail_utils import send_otp_email
 from otp_utils import generate_otp, verify_otp
 from crypto_utils import generate_rsa_keys
+from qr_utils import generate_qr_for_public_key, read_qr_from_image, save_public_key_entry
+from tkinter import filedialog # Thư viện tkinter để tạo giao diện đồ họa
 
 
 USER_DB = "users.json"
@@ -96,13 +98,41 @@ class RegisterFrame(tk.Frame):
         form.pack()
 
         self.inputs = {}
-        labels = ["Email", "Họ tên", "Passphrase"]
+        labels = ["Email", "Họ tên", "Địa chỉ", "SĐT", "Passphrase"]
 
         for i, label in enumerate(labels):
-            tk.Label(form, text=label + ":").grid(row=i, column=0, sticky="e", padx=5, pady=4) # đặt các nhãn vào lưới, sticky east kéo nhãn đến hết bên phải
-            entry = tk.Entry(form, width=30, show="*" if label == "Passphrase" else "") # tạo ô nhập liệu
-            entry.grid(row=i, column=1, pady=4) # gán vào cột 2 cùng dòng với các nhãn
+            tk.Label(form, text=label + ":").grid(row=i, column=0, sticky="e", padx=5, pady=4)
+            entry = tk.Entry(form, width=30, show="*" if label == "Passphrase" else "")
+            entry.grid(row=i, column=1, pady=4)
             self.inputs[label] = entry
+
+        # Thêm chọn ngày sinh
+        tk.Label(form, text="Ngày sinh:").grid(row=len(labels), column=0, sticky="e", padx=5, pady=4)
+        dob_frame = tk.Frame(form)
+        dob_frame.grid(row=len(labels), column=1, pady=4)
+
+        # Combobox ngày 
+        self.day_var = tk.StringVar()
+        # textvariable là biến liên kết với combobox, khi giá trị thay đổi thì biến này cũng sẽ thay đổi, trạng thái chỉ đọc
+        day_cb = ttk.Combobox(dob_frame, textvariable=self.day_var, width=4, values=[str(i) for i in range(1, 32)], state="readonly")
+        day_cb.set("1") # Thiết lập giá trị mặc định là ngày 1
+        day_cb.pack(side="left")
+        tk.Label(dob_frame, text="/").pack(side="left") # Thêm nhãn "/" giữa các combobox
+
+        # Combobox tháng
+        self.month_var = tk.StringVar() # StringVar là biến có thể thay đổi giá trị, dùng để lưu trữ giá trị của combobox
+        month_cb = ttk.Combobox(dob_frame, textvariable=self.month_var, width=4, values=[str(i) for i in range(1, 13)], state="readonly")
+        month_cb.set("1")
+        month_cb.pack(side="left")
+        tk.Label(dob_frame, text="/").pack(side="left")
+
+        # Combobox năm
+        self.year_var = tk.StringVar()
+        current_year = datetime.datetime.now().year
+        years = [str(y) for y in range(current_year - 100, current_year + 1)]
+        year_cb = ttk.Combobox(dob_frame, textvariable=self.year_var, width=6, values=years[::-1], state="readonly")
+        year_cb.set(str(current_year - 20)) # Thiết lập giá trị mặc định là 20 tuổi =)))
+        year_cb.pack(side="left")
 
         tk.Button(self, text="Đăng ký", command=self.register).pack(pady=10)
         tk.Button(self, text="← Quay lại đăng nhập", command=lambda: master.show_frame("LoginFrame")).pack()
@@ -110,9 +140,15 @@ class RegisterFrame(tk.Frame):
     def register(self):
         email = self.inputs["Email"].get().strip()
         name = self.inputs["Họ tên"].get().strip()
+        address = self.inputs["Địa chỉ"].get().strip()
+        phone = self.inputs["SĐT"].get().strip()
         pw = self.inputs["Passphrase"].get().strip()
+        day = self.day_var.get()
+        month = self.month_var.get()
+        year = self.year_var.get()
+        dob = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
 
-        if not email or not name or not pw:
+        if not all([email, name, dob, address, phone, pw]):
             messagebox.showwarning("Thiếu thông tin", "Vui lòng nhập đầy đủ thông tin.")
             return
 
@@ -133,6 +169,9 @@ class RegisterFrame(tk.Frame):
         # Lưu thông tin người dùng vào từ điển
         users[email] = {
             "name": name,
+            "dob": dob,
+            "address": address,
+            "phone": phone,
             "salt": salt,
             "pass_hash": pw_hash
         }
@@ -231,7 +270,7 @@ class KeyStatusPanel(tk.Frame):
         self.output.insert(tk.END, "\n".join(lines))
 
     def renew_key(self):
-        pw = askstring("Xác nhận", "Nhập passphrase để tạo lại khóa:")
+        pw = askstring("Xác nhận", "Nhập passphrase để tạo lại khóa:", show="*")
         if not pw:
             return
         try:
@@ -254,7 +293,6 @@ class QRPanel(tk.Frame):
         self.output.pack(padx=10, pady=5)
 
     def create_qr(self):
-        from qr_utils import generate_qr_for_public_key
         ok, result = generate_qr_for_public_key(self.user_email)
         if ok:
             self.output.insert(tk.END, f"Đã tạo QR: {result}\n")
@@ -262,9 +300,6 @@ class QRPanel(tk.Frame):
             self.output.insert(tk.END, f"Lỗi: {result}\n")
 
     def read_qr(self):
-        from tkinter import filedialog
-        from qr_utils import read_qr_from_image, save_public_key_entry
-
         file_path = filedialog.askopenfilename(filetypes=[("PNG files", "*.png")])
         if not file_path:
             return
@@ -274,6 +309,78 @@ class QRPanel(tk.Frame):
             self.output.insert(tk.END, f"Đã đọc QR và lưu public key:\n{json.dumps(data, indent=2)}\n")
         else:
             self.output.insert(tk.END, f"Lỗi đọc QR: {data}\n")
+
+class UpdateInfoPanel(tk.Frame):
+    def __init__(self, parent, user_email):
+        super().__init__(parent)
+        self.user_email = user_email
+        self.inputs = {}
+
+        tk.Label(self, text="✏️ Cập nhật thông tin tài khoản", font=("Segoe UI", 14)).pack(pady=10)
+        form = tk.Frame(self)
+        form.pack()
+
+        fields = ["Họ tên", "Ngày sinh", "Địa chỉ", "SĐT", "Passphrase mới (nếu đổi)"]
+        for i, label in enumerate(fields):
+            tk.Label(form, text=label).grid(row=i, column=0, sticky="e", padx=5, pady=4)
+            entry = tk.Entry(form, width=40, show="*" if "Passphrase" in label else "")
+            entry.grid(row=i, column=1, pady=4)
+            self.inputs[label] = entry
+
+        tk.Button(self, text="Lưu thay đổi", command=self.save_changes).pack(pady=8)
+        self.load_existing_info()
+
+    def load_existing_info(self):
+        try:
+            with open(USER_DB, "r", encoding="utf-8") as f:
+                users = json.load(f)
+            data = users[self.user_email]
+            self.inputs["Họ tên"].insert(0, data["name"])
+            self.inputs["Ngày sinh"].insert(0, data.get("dob", ""))
+            self.inputs["Địa chỉ"].insert(0, data.get("address", ""))
+            self.inputs["SĐT"].insert(0, data.get("phone", ""))
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Không tải được dữ liệu người dùng: {e}")
+
+    def save_changes(self):
+        try:
+            with open(USER_DB, "r", encoding="utf-8") as f:
+                users = json.load(f)
+
+            user = users[self.user_email]
+            old_passphrase = askstring("Xác nhận", "Nhập passphrase hiện tại để xác thực:", show="*")
+
+            pw_salted = old_passphrase + user["salt"]
+            pw_hash = hashlib.sha256(pw_salted.encode()).hexdigest()
+            if pw_hash != user["pass_hash"]:
+                messagebox.showerror("Lỗi", "Passphrase không chính xác.")
+                return
+
+            # Nếu có passphrase mới
+            new_pw = self.inputs["Passphrase mới (nếu đổi)"].get().strip()
+            if new_pw:
+                # giải mã và mã hóa lại private key
+                from crypto_utils import reencrypt_private_key
+                reencrypt_private_key(self.user_email, old_passphrase, new_pw)
+
+                new_salt = secrets.token_hex(16)
+                new_hash = hashlib.sha256((new_pw + new_salt).encode()).hexdigest()
+                user["salt"] = new_salt
+                user["pass_hash"] = new_hash
+                log_event(f"Đổi passphrase cho: {self.user_email}")
+
+            # cập nhật các trường khác
+            user["name"] = self.inputs["Họ tên"].get().strip()
+            user["dob"] = self.inputs["Ngày sinh"].get().strip()
+            user["address"] = self.inputs["Địa chỉ"].get().strip()
+            user["phone"] = self.inputs["SĐT"].get().strip()
+
+            with open(USER_DB, "w", encoding="utf-8") as f:
+                json.dump(users, f, indent=2, ensure_ascii=False)
+
+            messagebox.showinfo("Thành công", "Cập nhật thông tin thành công.")
+        except Exception as e:
+            messagebox.showerror("Lỗi", f"Không thể lưu thay đổi: {e}")
 
 class DashboardFrame(tk.Frame):
     def __init__(self, master):
@@ -289,6 +396,7 @@ class DashboardFrame(tk.Frame):
             ("Giải mã", self.show_decrypt),
             ("Trạng thái khóa", self.show_key_status),
             ("QR Public Key", self.show_qr),
+            ("Cập nhật tài khoản", self.show_update_info),
             ("Đăng xuất", self.logout)
         ]
 
@@ -300,6 +408,7 @@ class DashboardFrame(tk.Frame):
         self.content = tk.Frame(self)
         self.content.pack(side="right", expand=True, fill="both")
 
+        self.update_info_panel = None
         self.key_status_panel = None
         self.qr_panel = None
         self.update_key_status_panel(self.master.current_user)
@@ -337,6 +446,13 @@ class DashboardFrame(tk.Frame):
 
         self.qr_panel = QRPanel(self.content, user_email=self.master.current_user)
         self.qr_panel.pack(fill="both", expand=True)
+
+    def show_update_info(self):
+        self.clear_content()
+        if self.update_info_panel:
+            self.update_info_panel.destroy()
+        self.update_info_panel = UpdateInfoPanel(self.content, user_email=self.master.current_user)
+        self.update_info_panel.pack(fill="both", expand=True)
 
     def clear_content(self):
         # Xóa nội dung bên phải

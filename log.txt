@@ -20,3 +20,7 @@
 [2025-06-25 21:37:38] Gửi OTP cho: hgkhanh22@clc.fitus.edu.vn, mã: 077398
 [2025-06-25 21:39:18] Gửi OTP cho: hgkhanh22@clc.fitus.edu.vn, mã: 543012
 [2025-06-25 21:42:07] Gửi OTP cho: hgkhanh22@clc.fitus.edu.vn, mã: 040885
+[2025-06-25 22:21:11] Đăng ký thành công: huynhgiakhanh2004@gmail.com
+[2025-06-25 22:21:37] Gửi OTP cho: huynhgiakhanh2004@gmail.com, mã: 887465
+[2025-06-25 22:22:09] Đổi passphrase cho: huynhgiakhanh2004@gmail.com
+[2025-06-25 22:26:00] Đổi passphrase cho: huynhgiakhanh2004@gmail.com
