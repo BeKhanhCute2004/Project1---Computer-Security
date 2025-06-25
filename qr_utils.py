@@ -1,8 +1,8 @@
-import qrcode
-import base64
-import json
+import qrcode # Thư viện tạo mã QR
+import base64 # Thư viện mã hóa base64
+import json 
 from datetime import datetime
-import cv2
+import cv2 # Thư viện OpenCV để đọc mã QR
 
 KEY_FOLDER = "rsa_keys"
 PUBLIC_KEY_BOOK = "public_keys.json"
@@ -24,7 +24,7 @@ def generate_qr_for_public_key(email):
         "public_key": base64.b64encode(pub_key_raw).decode()
     }
 
-    data_str = json.dumps(payload)
+    data_str = json.dumps(payload) # Chuyển đổi payload thành chuỗi JSON
     img = qrcode.make(data_str)
 
     img_path = f"{KEY_FOLDER}/{email}_qrcode.png"
@@ -34,8 +34,8 @@ def generate_qr_for_public_key(email):
 
 def read_qr_from_image(file_path):
     try:
-        detector = cv2.QRCodeDetector()
-        img = cv2.imread(file_path)
+        detector = cv2.QRCodeDetector() # Tạo đối tượng QRCodeDetector từ OpenCV
+        img = cv2.imread(file_path) # imread để đọc ảnh từ file
         if img is None:
             return False, "Không đọc được ảnh."
 
@@ -52,7 +52,11 @@ def save_public_key_entry(data):
     # Lưu public key đã nhận được từ QR vào sổ
     try:
         with open(PUBLIC_KEY_BOOK, "r", encoding="utf-8") as f:
-            db = json.load(f)
+            content = f.read().strip()
+            if content:
+                db = json.loads(content)
+            else:
+                db = {}
     except FileNotFoundError:
         db = {}
 
@@ -64,4 +68,4 @@ def save_public_key_entry(data):
     }
 
     with open(PUBLIC_KEY_BOOK, "w", encoding="utf-8") as f:
-        json.dump(db, f, indent=2)
+        json.dump(db, f, indent=2) # indent=2 để dễ đọc (2 space indent)
