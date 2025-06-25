@@ -29,7 +29,7 @@ Mã sẽ hết hạn sau 5 phút.
 """)
 
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp: # thiết lập kết nối SMTP qua SSL/TLS (Secure Sockets Layer / Transport Layer Security) ngay từ đầu qua port 456.
             smtp.login(SENDER_EMAIL, SENDER_APP_PASSWORD) 
             smtp.send_message(msg)
             print("Đã gửi OTP đến email:", receiver_email)

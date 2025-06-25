@@ -5,8 +5,10 @@ from tkinter import messagebox
 import hashlib
 import secrets
 import datetime
+import os
 from mail_utils import send_otp_email
-from otp import generate_otp, verify_otp
+from otp_utils import generate_otp, verify_otp
+from crypto_utils import generate_rsa_keys
 
 USER_DB = "users.json"
 
@@ -137,10 +139,11 @@ class RegisterFrame(tk.Frame):
         messagebox.showinfo("Thành công", "Đăng ký thành công!")
         log_event(f"Đăng ký thành công: {email}")
         self.master.show_frame("LoginFrame")
+        generate_rsa_keys(email, pw)
 
-class OTPDialog(tk.Toplevel):
-    def __init__(self, parent, email):
-        super().__init__(parent)
+class OTPDialog(tk.Toplevel): # Toplevel tạo cửa sổ con độc lập với cửa sổ chính, pop up khi cần xác thực OTP.
+    def __init__(self, master, email):
+        super().__init__(master)
         self.email = email
         self.title("Xác thực OTP")
         self.geometry("300x150")
@@ -159,6 +162,37 @@ class OTPDialog(tk.Toplevel):
         else:
             tk.messagebox.showerror("Thất bại", "OTP sai hoặc đã hết hạn.")
             self.destroy()
+
+class KeyStatusPanel(tk.Frame):
+    def __init__(self, master, user_email=None):
+        super().__init__(master)
+        self.user_email = user_email
+
+        tk.Label(self, text="📄 Trạng thái khóa RSA", font=("Segoe UI", 14)).pack(pady=10)
+        self.output = tk.Text(self, width=60, height=10)
+        self.output.pack()
+
+        tk.Button(self, text="Làm mới", command=self.load_info).pack(pady=6)
+        self.load_info()
+
+    def load_info(self):
+        self.output.delete(1.0, tk.END)
+        path = f"rsa_keys/{self.user_email}_info.json"
+        if not os.path.exists(path):
+            self.output.insert(tk.END, "Không tìm thấy thông tin khóa.")
+            return
+
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        lines = [
+            f"Email: {data['email']}",
+            f"Ngày tạo: {data['created']}",
+            f"Hết hạn: {data['expires']}",
+            f"Public Key: {data['public_key_file']}",
+            f"Private Key (mã hóa): {data['private_key_file']}"
+        ]
+        self.output.insert(tk.END, "\n".join(lines))
 
 class DashboardFrame(tk.Frame):
     def __init__(self, master):

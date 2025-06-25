@@ -1,0 +1,5 @@
+.env
+rsa_keys
+log.txt
+users.json
+*.pyc
