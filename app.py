@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter.simpledialog import askstring
 import json
 import tkinter as tk
 from tkinter import messagebox
@@ -9,6 +10,7 @@ import os
 from mail_utils import send_otp_email
 from otp_utils import generate_otp, verify_otp
 from crypto_utils import generate_rsa_keys
+
 
 USER_DB = "users.json"
 
@@ -29,7 +31,7 @@ class App(tk.Tk):
         for F in (LoginFrame, RegisterFrame, DashboardFrame):
             frame = F(self)
             self.frames[F.__name__] = frame # __name__ hiển thị tên class hiện tại, thuộc tính có sẵn trong class
-            frame.grid(row=0, column=0, sticky="nsew") # kéo frame full khung hình bắt đầu từ dòng 0 cột 0
+            frame.place(relwidth=1, relheight=1) # đặt frame chiếm toàn bộ chiều rộng và chiều cao của cửa sổ
 
         self.show_frame("LoginFrame")
 
@@ -189,7 +191,10 @@ class KeyStatusPanel(tk.Frame):
         scrollbar.pack(side="right", fill="y")
         self.output.config(yscrollcommand=scrollbar.set) # khi nội dung text thay đổi, scrollbar sẽ tự động cập nhật vị trí cuộn
 
-        tk.Button(self, text="Làm mới", command=self.load_info).pack(pady=6)
+        btn_frame = tk.Frame(self)
+        btn_frame.pack(pady=6)
+        tk.Button(btn_frame, text="Làm mới", command=self.load_info).pack(side="left", padx=5)
+        tk.Button(btn_frame, text="Làm mới khóa", command=self.renew_key).pack(side="left", padx=5)
         self.load_info()
 
     def load_info(self):
@@ -202,6 +207,13 @@ class KeyStatusPanel(tk.Frame):
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
+        expires = data.get("expires")
+        try:
+            exp_date = datetime.strptime(expires, "%Y-%m-%d")
+            days_left = (exp_date - datetime.now()).days
+        except Exception:
+            days_left = None
+
         lines = [
             f"Email: {data['email']}",
             f"Ngày tạo: {data['created']}",
@@ -209,7 +221,59 @@ class KeyStatusPanel(tk.Frame):
             f"Public Key: {data['public_key_file']}",
             f"Private Key (mã hóa): {data['private_key_file']}"
         ]
-        self.output.insert(tk.END, "\n".join(lines)) # chèn vào cuối nội dung hiện có, join tất cả chuỗi trong danh sách lines thành một chuỗi duy nhất, ngăn cách bằng ký tự xuống dòng
+        if days_left is not None:
+            if days_left < 0:
+                lines.append("Khóa đã hết hạn! Vui lòng làm mới.")
+            elif days_left <= 7:
+                lines.append(f"Khóa sắp hết hạn ({days_left} ngày nữa). Nên làm mới khóa.")
+            else:
+                lines.append(f"Còn {days_left} ngày trước khi hết hạn.")
+        self.output.insert(tk.END, "\n".join(lines))
+
+    def renew_key(self):
+        pw = askstring("Xác nhận", "Nhập passphrase để tạo lại khóa:")
+        if not pw:
+            return
+        try:
+            generate_rsa_keys(self.user_email, pw)
+            tk.messagebox.showinfo("Thành công", "Đã tạo lại khóa mới!")
+            self.load_info()
+        except Exception as e:
+            tk.messagebox.showerror("Lỗi", f"Làm mới khóa thất bại: {e}")
+
+class QRPanel(tk.Frame):
+    def __init__(self, parent, user_email):
+        super().__init__(parent)
+        self.user_email = user_email
+        tk.Label(self, text="Mã QR Public Key", font=("Segoe UI", 14)).pack(pady=10)
+
+        tk.Button(self, text="Tạo mã QR cho public key", command=self.create_qr).pack(pady=5)
+        tk.Button(self, text="Đọc mã QR từ ảnh", command=self.read_qr).pack(pady=5)
+
+        self.output = tk.Text(self, width=70, height=15, wrap="word")
+        self.output.pack(padx=10, pady=5)
+
+    def create_qr(self):
+        from qr_utils import generate_qr_for_public_key
+        ok, result = generate_qr_for_public_key(self.user_email)
+        if ok:
+            self.output.insert(tk.END, f"Đã tạo QR: {result}\n")
+        else:
+            self.output.insert(tk.END, f"Lỗi: {result}\n")
+
+    def read_qr(self):
+        from tkinter import filedialog
+        from qr_utils import read_qr_from_image, save_public_key_entry
+
+        file_path = filedialog.askopenfilename(filetypes=[("PNG files", "*.png")])
+        if not file_path:
+            return
+        ok, data = read_qr_from_image(file_path)
+        if ok:
+            save_public_key_entry(data)
+            self.output.insert(tk.END, f"Đã đọc QR và lưu public key:\n{json.dumps(data, indent=2)}\n")
+        else:
+            self.output.insert(tk.END, f"Lỗi đọc QR: {data}\n")
 
 class DashboardFrame(tk.Frame):
     def __init__(self, master):
@@ -224,8 +288,10 @@ class DashboardFrame(tk.Frame):
             ("Mã hóa", self.show_encrypt),
             ("Giải mã", self.show_decrypt),
             ("Trạng thái khóa", self.show_key_status),
+            ("QR Public Key", self.show_qr),
             ("Đăng xuất", self.logout)
         ]
+
 
         for text, cmd in btns:
             tk.Button(menu, text=text, width=20, command=cmd).pack(pady=5)
@@ -235,7 +301,9 @@ class DashboardFrame(tk.Frame):
         self.content.pack(side="right", expand=True, fill="both")
 
         self.key_status_panel = None
+        self.qr_panel = None
         self.update_key_status_panel(self.master.current_user)
+
 
         # Mặc định hiện panel khóa
         self.show_key_status()
@@ -259,6 +327,16 @@ class DashboardFrame(tk.Frame):
         self.clear_content()
         self.update_key_status_panel(self.master.current_user)
         self.key_status_panel.tkraise()
+
+    def show_qr(self):
+        self.clear_content()
+
+        # Nếu panel chưa có hoặc email đổi thì tạo mới
+        if self.qr_panel:
+            self.qr_panel.destroy()
+
+        self.qr_panel = QRPanel(self.content, user_email=self.master.current_user)
+        self.qr_panel.pack(fill="both", expand=True)
 
     def clear_content(self):
         # Xóa nội dung bên phải

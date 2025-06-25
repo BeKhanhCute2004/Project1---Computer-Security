@@ -1,4 +1,5 @@
 *.env
+*.venv
 rsa_keys
 log.txt
 users.json
