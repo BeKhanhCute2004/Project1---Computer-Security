@@ -1,4 +1,4 @@
-.env
+*.env
 rsa_keys
 log.txt
 users.json
