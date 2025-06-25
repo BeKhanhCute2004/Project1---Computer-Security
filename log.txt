@@ -1,1 +1,4 @@
 [2025-06-24 19:46:12] Đăng ký thành công: hgkhanh22@clc.fitus.edu.vn
+[2025-06-25 10:20:51] Gửi OTP cho: hgkhanh22@clc.fitus.edu.vn, mã: 762188
+[2025-06-25 12:47:32] Gửi OTP cho: hgkhanh22@clc.fitus.edu.vn, mã: 913728
+[2025-06-25 12:57:32] Gửi OTP cho: hgkhanh22@clc.fitus.edu.vn, mã: 219542

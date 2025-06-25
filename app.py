@@ -5,6 +5,8 @@ from tkinter import messagebox
 import hashlib
 import secrets
 import datetime
+from mail_utils import send_otp_email
+from otp import generate_otp, verify_otp
 
 USER_DB = "users.json"
 
@@ -69,8 +71,12 @@ class LoginFrame(tk.Frame):
             messagebox.showerror("Lỗi", "Sai email hoặc passphrase!")
             return
         else:
-            messagebox.showinfo("Chào", f"Xin chào {user['name']}!")
-            self.master.show_frame("DashboardFrame")  # chuyển tới Dashboard
+            otp_code = generate_otp(email)
+            send_otp_email(email, otp_code)
+
+            messagebox.showinfo("Gửi OTP", "Mã OTP đã được gửi qua email.\nVui lòng kiểm tra hộp thư đến.")
+            OTPDialog(self, email)
+            log_event(f"Gửi OTP cho: {email}, mã: {otp_code}")
         
 
 class RegisterFrame(tk.Frame):
@@ -131,6 +137,28 @@ class RegisterFrame(tk.Frame):
         messagebox.showinfo("Thành công", "Đăng ký thành công!")
         log_event(f"Đăng ký thành công: {email}")
         self.master.show_frame("LoginFrame")
+
+class OTPDialog(tk.Toplevel):
+    def __init__(self, parent, email):
+        super().__init__(parent)
+        self.email = email
+        self.title("Xác thực OTP")
+        self.geometry("300x150")
+
+        tk.Label(self, text="Nhập mã OTP đã gửi đến email").pack(pady=10)
+        self.otp_entry = tk.Entry(self)
+        self.otp_entry.pack(pady=5)
+        tk.Button(self, text="Xác nhận", command=self.verify).pack(pady=8)
+
+    def verify(self):
+        user_input = self.otp_entry.get().strip()
+        if verify_otp(self.email, user_input):
+            tk.messagebox.showinfo("Thành công", "Xác thực OTP thành công!")
+            self.destroy()
+            self.master.master.show_frame("DashboardFrame")
+        else:
+            tk.messagebox.showerror("Thất bại", "OTP sai hoặc đã hết hạn.")
+            self.destroy()
 
 class DashboardFrame(tk.Frame):
     def __init__(self, master):

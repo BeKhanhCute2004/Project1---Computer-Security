@@ -1,2 +1,0 @@
-source reference:
-token hex: https://pynative.com/python-secrets-module/#:~:text=secrets.token_hex%28%5Bnbytes%3DNone%5D%29%3A%20Return%20a%20secure%20random%20text%20string%20in,are%20not%20supplied%2C%20a%20reasonable%20default%20gets%20used.
