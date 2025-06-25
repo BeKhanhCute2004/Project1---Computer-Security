@@ -22,7 +22,8 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("An ninh máy tính - Demo")
-        self.geometry("500x300")
+        self.geometry("500x500")
+        self.current_user = None
         self.frames = {}
 
         for F in (LoginFrame, RegisterFrame, DashboardFrame):
@@ -35,6 +36,7 @@ class App(tk.Tk):
     def show_frame(self, name):
         frame = self.frames[name]
         frame.tkraise() # đặt frame lên trên cùng của app
+
 
 class LoginFrame(tk.Frame):
     def __init__(self, master):
@@ -158,6 +160,12 @@ class OTPDialog(tk.Toplevel): # Toplevel tạo cửa sổ con độc lập với
         if verify_otp(self.email, user_input):
             tk.messagebox.showinfo("Thành công", "Xác thực OTP thành công!")
             self.destroy()
+
+            # Gán current_user
+            self.master.master.current_user = self.email
+            # Tạo lại KeyStatusPanel với user mới
+            self.master.master.frames["DashboardFrame"].update_key_status_panel(self.email)
+            # Chuyển sang dashboard
             self.master.master.show_frame("DashboardFrame")
         else:
             tk.messagebox.showerror("Thất bại", "OTP sai hoặc đã hết hạn.")
@@ -168,15 +176,24 @@ class KeyStatusPanel(tk.Frame):
         super().__init__(master)
         self.user_email = user_email
 
-        tk.Label(self, text="📄 Trạng thái khóa RSA", font=("Segoe UI", 14)).pack(pady=10)
-        self.output = tk.Text(self, width=60, height=10)
-        self.output.pack()
+        tk.Label(self, text="Trạng thái khóa RSA", font=("Segoe UI", 14)).pack(pady=10)
+
+        # Thêm frame chứa text và scrollbar
+        text_frame = tk.Frame(self)
+        text_frame.pack(fill="both", expand=True, padx=10, pady=5) # lắp đầy cả chiều rộng và chiều cao của frame cha, thêm khoảng cách 10px và 5px cho các cạnh
+
+        self.output = tk.Text(text_frame, width=60, height=10, wrap="word")
+        self.output.pack(side="left", fill="both", expand=True)
+
+        scrollbar = tk.Scrollbar(text_frame, command=self.output.yview) # gọi yview() để kết nối scrollbar với self.output
+        scrollbar.pack(side="right", fill="y")
+        self.output.config(yscrollcommand=scrollbar.set) # khi nội dung text thay đổi, scrollbar sẽ tự động cập nhật vị trí cuộn
 
         tk.Button(self, text="Làm mới", command=self.load_info).pack(pady=6)
         self.load_info()
 
     def load_info(self):
-        self.output.delete(1.0, tk.END)
+        self.output.delete(1.0, tk.END) # xoá mọi thứ từ dòng 1 cột 0 đến hết (END) trong text widget
         path = f"rsa_keys/{self.user_email}_info.json"
         if not os.path.exists(path):
             self.output.insert(tk.END, "Không tìm thấy thông tin khóa.")
@@ -192,23 +209,66 @@ class KeyStatusPanel(tk.Frame):
             f"Public Key: {data['public_key_file']}",
             f"Private Key (mã hóa): {data['private_key_file']}"
         ]
-        self.output.insert(tk.END, "\n".join(lines))
+        self.output.insert(tk.END, "\n".join(lines)) # chèn vào cuối nội dung hiện có, join tất cả chuỗi trong danh sách lines thành một chuỗi duy nhất, ngăn cách bằng ký tự xuống dòng
 
 class DashboardFrame(tk.Frame):
     def __init__(self, master):
         super().__init__(master)
-        tk.Label(self, text="🛡️ DASHBOARD", font=("Segoe UI", 16)).pack(pady=20)
+        self.master = master
 
-        tk.Button(self, text="→ Mã hóa dữ liệu", command=self.dummy_encrypt).pack(pady=6)
-        tk.Button(self, text="→ Giải mã dữ liệu", command=self.dummy_decrypt).pack(pady=6)
-        tk.Button(self, text="Đăng xuất", command=lambda: master.show_frame("LoginFrame")).pack(pady=10)
+        # Menu trái
+        menu = tk.Frame(self)
+        menu.pack(side="left", fill="y")
 
-    def dummy_encrypt(self):
-        tk.messagebox.showinfo("Mã hóa", "Tính năng mã hóa đang được phát triển...")
+        btns = [
+            ("Mã hóa", self.show_encrypt),
+            ("Giải mã", self.show_decrypt),
+            ("Trạng thái khóa", self.show_key_status),
+            ("Đăng xuất", self.logout)
+        ]
 
-    def dummy_decrypt(self):
-        tk.messagebox.showinfo("Giải mã", "Tính năng giải mã đang được phát triển...")
+        for text, cmd in btns:
+            tk.Button(menu, text=text, width=20, command=cmd).pack(pady=5)
 
+        # Nội dung phải
+        self.content = tk.Frame(self)
+        self.content.pack(side="right", expand=True, fill="both")
+
+        self.key_status_panel = None
+        self.update_key_status_panel(self.master.current_user)
+
+        # Mặc định hiện panel khóa
+        self.show_key_status()
+
+    def update_key_status_panel(self, user_email):
+        # Xóa panel cũ nếu có
+        if self.key_status_panel:
+            self.key_status_panel.destroy()
+        self.key_status_panel = KeyStatusPanel(self.content, user_email=user_email)
+        self.key_status_panel.pack(fill="both", expand=True)
+
+    def show_encrypt(self):
+        self.clear_content()
+        tk.Label(self.content, text="🔒 Mã hóa (chưa làm)", font=("Segoe UI", 14)).pack(pady=20)
+
+    def show_decrypt(self):
+        self.clear_content()
+        tk.Label(self.content, text="🔓 Giải mã (chưa làm)", font=("Segoe UI", 14)).pack(pady=20)
+
+    def show_key_status(self):
+        self.clear_content()
+        self.update_key_status_panel(self.master.current_user)
+        self.key_status_panel.tkraise()
+
+    def clear_content(self):
+        # Xóa nội dung bên phải
+        for widget in self.content.winfo_children(): 
+            widget.destroy()
+
+    def logout(self):
+        # Đặt lại user hiện tại và quay về màn hình đăng nhập
+        self.master.current_user = None
+        self.master.show_frame("LoginFrame")
 
 if __name__ == "__main__":
     app = App()

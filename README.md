@@ -1,7 +1,7 @@
-install dependency /n
-pip install python-dotenv /n
-pip install pycryptodome /n
-/n
-create .env /n
-GMAIL_USER=your_email /n
-GMAIL_APP_PASSWORD=your_app_pass /n
+## install dependency ##
+- pip install python-dotenv 
+- pip install pycryptodome 
+
+## create .env ##
+- GMAIL_USER=your_email 
+- GMAIL_APP_PASSWORD=your_app_pass 
