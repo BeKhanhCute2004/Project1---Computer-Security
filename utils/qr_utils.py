@@ -3,9 +3,7 @@ import base64 # Thư viện mã hóa base64
 import json 
 from datetime import datetime
 import cv2 # Thư viện OpenCV để đọc mã QR
-
-KEY_FOLDER = "rsa_keys"
-PUBLIC_KEY_BOOK = "public_keys.json"
+from config import KEY_FOLDER, PUBLIC_KEY_BOOK # Thư viện cấu hình chứa đường dẫn thư mục khóa và sổ public key
 
 def generate_qr_for_public_key(email):
     path = f"{KEY_FOLDER}/{email}_info.json"

@@ -1,6 +1,10 @@
 *.env
 *.venv
 rsa_keys
-log.txt
-users.json
+data
 *.pyc
+encrypted_files
+decrypted_*.txt
+__pycache__
+utils.__pycache__
+log.txt
