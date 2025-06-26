@@ -22,7 +22,7 @@ def generate_rsa_keys(email: str, passphrase: str):
     ciphertext, tag = cipher.encrypt_and_digest(private_key)
 
     encrypted_data = {
-        "salt": b64encode(salt).decode(), 
+        "salt": b64encode(salt).decode(), # chuyển đổi salt sang base64 sau đó decode sang chuỗi để lưu trữ
         "nonce": b64encode(cipher.nonce).decode(), # nonce dùng để đảm bảo tính ngẫu nhiên của mỗi lần mã hóa
         "tag": b64encode(tag).decode(), # tag dùng để xác thực tính toàn vẹn của dữ liệu
         "ciphertext": b64encode(ciphertext).decode()
@@ -32,7 +32,7 @@ def generate_rsa_keys(email: str, passphrase: str):
     pub_path = os.path.join(KEY_FOLDER, f"{email}_public.pem")
     priv_path = os.path.join(KEY_FOLDER, f"{email}_private_enc.json")
 
-    with open(pub_path, "wb") as f:
+    with open(pub_path, "wb") as f: # wb để ghi file nhị phân vì public key là dữ liệu nhị phân
         f.write(public_key)
 
     with open(priv_path, "w", encoding="utf-8") as f:
@@ -103,7 +103,7 @@ def encrypt_file(sender_email, recipient_email, file_path, out_folder="encrypted
         data = f.read()
     ciphertext, tag = cipher_aes.encrypt_and_digest(data)
 
-    cipher_rsa = PKCS1_OAEP.new(pub_key)
+    cipher_rsa = PKCS1_OAEP.new(pub_key) # sử dụng OAEP để mã hóa khóa phiên, an toàn hơn so với dùng trực tiếp RSA
     enc_ksession = cipher_rsa.encrypt(ksession)
 
     metadata = {
