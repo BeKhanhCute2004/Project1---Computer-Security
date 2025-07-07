@@ -1,5 +1,7 @@
 import tkinter as tk
 from utils.otp_utils import verify_otp
+from config import USER_DB
+import json
 
 class OTPDialog(tk.Toplevel): # Toplevel tạo cửa sổ con độc lập với cửa sổ chính, pop up khi cần xác thực OTP.
     def __init__(self, master, email):
@@ -19,12 +21,24 @@ class OTPDialog(tk.Toplevel): # Toplevel tạo cửa sổ con độc lập với
             tk.messagebox.showinfo("Thành công", "Xác thực OTP thành công!")
             self.destroy()
 
+            try:
+                with open(USER_DB, "r", encoding="utf-8") as f:
+                    users = json.load(f)
+                role = users.get(self.email, {}).get("role", "user")
+            except Exception:
+                role = "user"
+
             # Gán current_user
             self.master.master.current_user = self.email
-            # Tạo lại KeyStatusPanel với user mới
-            self.master.master.frames["DashboardFrame"].update_key_status_panel(self.email)
-            # Chuyển sang dashboard
-            self.master.master.show_frame("DashboardFrame")
+
+            if role == "admin":
+                # Chuyển sang AdminFrame nếu là admin
+                self.master.master.show_frame("AdminFrame")
+            else:
+                # Tạo lại KeyStatusPanel với user mới
+                self.master.master.frames["DashboardFrame"].update_key_status_panel(self.email)
+                # Chuyển sang DashboardFrame nếu là user
+                self.master.master.show_frame("DashboardFrame")
         else:
             tk.messagebox.showerror("Thất bại", "OTP sai hoặc đã hết hạn.")
             self.destroy()

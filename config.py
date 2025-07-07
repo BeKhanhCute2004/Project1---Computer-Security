@@ -3,8 +3,10 @@ import datetime
 USER_DB = "data/users.json"
 KEY_FOLDER = "rsa_keys"
 PUBLIC_KEY_BOOK = "data/public_keys.json"
+SIGNATURES_FOLDER = "signatures"
+LOG_FILE = "security.log"
 
 def log_event(message):
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    with open("log.txt", "a", encoding="utf-8") as f:
+    with open(LOG_FILE, "a", encoding="utf-8") as f:
         f.write(f"[{now}] {message}\n")

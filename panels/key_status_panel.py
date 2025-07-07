@@ -3,7 +3,7 @@ from tkinter.simpledialog import askstring
 import json
 import hashlib
 from utils.crypto_utils import generate_rsa_keys
-from config import USER_DB
+from config import USER_DB, log_event
 import os
 from datetime import datetime
 
@@ -81,5 +81,7 @@ class KeyStatusPanel(tk.Frame):
             generate_rsa_keys(self.user_email, pw)
             tk.messagebox.showinfo("Thành công", "Đã tạo lại khóa mới!")
             self.load_info()
+            log_event(f"Khóa RSA đã được làm mới cho người dùng {self.user_email}.")
         except Exception as e:
             tk.messagebox.showerror("Lỗi", f"Làm mới khóa thất bại: {e}")
+            log_event(f"Lỗi khi làm mới khóa RSA cho người dùng {self.user_email}.")

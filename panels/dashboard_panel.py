@@ -4,6 +4,8 @@ from panels.qr_panel import QRPanel
 from panels.update_info_panel import UpdateInfoPanel
 from panels.encrypt_panel import EncryptPanel
 from panels.decrypt_panel import DecryptPanel
+from panels.sign_file_panel import SignFilePanel
+from panels.verify_signature_panel import VerifySignaturePanel
 
 class DashboardFrame(tk.Frame):
     def __init__(self, master):
@@ -20,6 +22,8 @@ class DashboardFrame(tk.Frame):
             ("Trạng thái khóa", self.show_key_status),
             ("QR Public Key", self.show_qr),
             ("Cập nhật tài khoản", self.show_update_info),
+            ("Ký số tập tin", self.show_sign_file),
+            ("Xác minh chữ ký", self.show_verify_signature),
             ("Đăng xuất", self.logout)
         ]
 
@@ -36,6 +40,8 @@ class DashboardFrame(tk.Frame):
         self.update_info_panel = None
         self.key_status_panel = None
         self.qr_panel = None
+        self.sign_panel = None
+        self.verify_signature_panel = None
         self.update_key_status_panel(self.master.current_user)
 
 
@@ -83,6 +89,22 @@ class DashboardFrame(tk.Frame):
             self.update_info_panel.destroy()
         self.update_info_panel = UpdateInfoPanel(self.content, user_email=self.master.current_user)
         self.update_info_panel.pack(fill="both", expand=True)
+
+    def show_sign_file(self):
+        self.clear_content()
+        if self.sign_panel:
+            self.sign_panel.destroy()
+
+        self.sign_panel = SignFilePanel(self.content, user_email=self.master.current_user)
+        self.sign_panel.pack(fill="both", expand=True)
+
+    def show_verify_signature(self):
+        self.clear_content()
+        if self.verify_signature_panel:
+            self.verify_signature_panel.destroy()
+
+        self.verify_signature_panel = VerifySignaturePanel(self.content, user_email=self.master.current_user)
+        self.verify_signature_panel.pack(fill="both", expand=True)
 
     def clear_content(self):
         # Xóa nội dung bên phải

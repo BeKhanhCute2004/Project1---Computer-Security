@@ -54,6 +54,13 @@ class RegisterFrame(tk.Frame):
         year_cb.set(str(current_year - 20)) # Thiết lập giá trị mặc định là 20 tuổi =)))
         year_cb.pack(side="left")
 
+        # Combobox chọn role
+        tk.Label(form, text="Role:").grid(row=len(labels)+1, column=0, sticky="e", padx=5, pady=4)
+        self.role_var = tk.StringVar()
+        role_cb = ttk.Combobox(form, textvariable=self.role_var, width=28, values=["user", "admin"], state="readonly")
+        role_cb.set("user")  # Mặc định là user
+        role_cb.grid(row=len(labels)+1, column=1, pady=4)
+
         tk.Button(self, text="Đăng ký", command=self.register).pack(pady=10)
         tk.Button(self, text="← Quay lại đăng nhập", command=lambda: master.show_frame("LoginFrame")).pack()
 
@@ -67,6 +74,7 @@ class RegisterFrame(tk.Frame):
         month = self.month_var.get()
         year = self.year_var.get()
         dob = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+        role = self.role_var.get()
 
         if not all([email, name, dob, address, phone, pw]):
             messagebox.showwarning("Thiếu thông tin", "Vui lòng nhập đầy đủ thông tin.")
@@ -93,7 +101,9 @@ class RegisterFrame(tk.Frame):
             "address": address,
             "phone": phone,
             "salt": salt,
-            "pass_hash": pw_hash
+            "pass_hash": pw_hash,
+            "role": role,
+            "status": "active"
         }
 
         with open(USER_DB, "w", encoding="utf-8") as f:

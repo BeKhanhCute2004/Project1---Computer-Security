@@ -2,6 +2,7 @@ import tkinter as tk
 from panels.login_panel import LoginFrame
 from panels.register_panel import RegisterFrame
 from panels.dashboard_panel import DashboardFrame
+from panels.admin_panel import AdminFrame
 
 class App(tk.Tk):
     def __init__(self):
@@ -11,7 +12,7 @@ class App(tk.Tk):
         self.current_user = None
         self.frames = {}
 
-        for F in (LoginFrame, RegisterFrame, DashboardFrame):
+        for F in (LoginFrame, RegisterFrame, DashboardFrame, AdminFrame):
             frame = F(self)
             self.frames[F.__name__] = frame # __name__ hiển thị tên class hiện tại, thuộc tính có sẵn trong class
             frame.place(relwidth=1, relheight=1) # đặt frame chiếm toàn bộ chiều rộng và chiều cao của cửa sổ

@@ -35,6 +35,11 @@ class LoginFrame(tk.Frame):
         if not user:
             messagebox.showerror("Lỗi", "Sai email hoặc passphrase!")
             return
+        
+        # Kiểm tra trạng thái tài khoản
+        if user.get("status", "active") == "locked":
+            messagebox.showerror("Tài khoản bị khóa", "Tài khoản của bạn đã bị khóa.")
+            return
 
         salt = user["salt"]
         pw_salted = pw + salt

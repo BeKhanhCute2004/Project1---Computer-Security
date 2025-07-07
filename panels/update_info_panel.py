@@ -107,7 +107,7 @@ class UpdateInfoPanel(tk.Frame):
                 new_hash = hashlib.sha256((new_pw + new_salt).encode()).hexdigest()
                 user["salt"] = new_salt
                 user["pass_hash"] = new_hash
-                log_event(f"Đổi passphrase cho: {self.user_email}")
+                log_event(f"Đổi passphrase thành công cho: {self.user_email}")
 
             # cập nhật các trường khác
             user["name"] = self.inputs["Họ tên"].get().strip()
