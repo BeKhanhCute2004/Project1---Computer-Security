@@ -14,6 +14,7 @@ class AdminFrame(tk.Frame):
 
         btns = [
             ("Xem danh sách tài khoản", self.show_users),
+            ("Phân quyền quản trị", self.set_roles),
             ("Xem log hệ thống", self.show_logs),
             ("Đăng xuất", self.logout)
         ]
@@ -79,7 +80,7 @@ class AdminFrame(tk.Frame):
             with open(USER_DB, "w", encoding="utf-8") as f:
                 json.dump(users, f, indent=2, ensure_ascii=False)
 
-            log_event(f"Admin cập nhật trạng thái tài khoản: {email} thành {new_status}")
+            log_event(f"Admin ({self.master.current_user}) cập nhật trạng thái tài khoản: {email} thành {new_status}")
             self.show_users()  # Refresh giao diện
         except Exception as e:
             tk.messagebox.showerror("Lỗi", f"Lỗi khi cập nhật: {str(e)}")
@@ -99,6 +100,52 @@ class AdminFrame(tk.Frame):
             self.output.insert(tk.END, logs)
         except FileNotFoundError:
             self.output.insert(tk.END, "Chưa có log nào.")
+
+    def set_roles(self):
+        self.clear_content()
+
+        try:
+            with open(USER_DB, "r", encoding="utf-8") as f:
+                users = json.load(f)
+        except FileNotFoundError:
+            users = {}
+
+        headers = ["Email", "Họ tên", "Role", "Lưu"]
+        table = tk.Frame(self.content)
+        table.pack(padx=10, pady=10)
+
+        # Header
+        for i, head in enumerate(headers):
+            tk.Label(table, text=head, font=("Segoe UI", 10, "bold"), borderwidth=1, relief="solid", width=28).grid(row=0, column=i)
+
+        # Danh sách user
+        for row_idx, (email, data) in enumerate(users.items(), start=1):
+            name = data.get("name", "")
+            current_role = data.get("role", "user")
+
+            tk.Label(table, text=email, borderwidth=1, relief="solid", width=28, anchor="w").grid(row=row_idx, column=0, sticky="nsew", pady=0)
+            tk.Label(table, text=name, borderwidth=1, relief="solid", width=28, anchor="w").grid(row=row_idx, column=1, sticky="nsew", pady=0)
+
+            role_var = tk.StringVar(value=current_role)
+            role_menu = tk.OptionMenu(table, role_var, "user", "admin")
+            role_menu.config(width=10)
+            role_menu.grid(row=row_idx, column=2, pady=0)
+
+            def save_role(email=email, var=role_var):
+                new_role = var.get()
+                try:
+                    with open(USER_DB, "r", encoding="utf-8") as f:
+                        users_data = json.load(f)
+                    if email in users_data:
+                        users_data[email]["role"] = new_role
+                        with open(USER_DB, "w", encoding="utf-8") as f:
+                            json.dump(users_data, f, indent=2, ensure_ascii=False)
+                        log_event(f"Admin ({self.master.current_user}) gán quyền {new_role} cho: {email}")
+                        tk.messagebox.showinfo("Thành công", f"Đã cập nhật quyền cho {email}")
+                except Exception as e:
+                    tk.messagebox.showerror("Lỗi", f"Không thể cập nhật quyền: {str(e)}")
+
+            tk.Button(table, text="Lưu", command=save_role).grid(row=row_idx, column=3)
 
     def clear_content(self):
         # Xóa nội dung bên phải
