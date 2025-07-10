@@ -6,7 +6,7 @@ import secrets
 import datetime
 from utils.crypto_utils import generate_rsa_keys
 from config import USER_DB, log_event
-
+from utils.recovery_utils import generate_recovery_code, hash_recovery_code, create_recovery_encrypted_key
 class RegisterFrame(tk.Frame):
     def __init__(self, master):
         super().__init__(master)
@@ -68,6 +68,9 @@ class RegisterFrame(tk.Frame):
         year = self.year_var.get()
         dob = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
 
+        recovery_code = generate_recovery_code()
+        recovery_code_hash = hash_recovery_code(recovery_code)
+
         if not all([email, name, dob, address, phone, pw]):
             messagebox.showwarning("Thiếu thông tin", "Vui lòng nhập đầy đủ thông tin.")
             return
@@ -93,7 +96,12 @@ class RegisterFrame(tk.Frame):
             "address": address,
             "phone": phone,
             "salt": salt,
-            "pass_hash": pw_hash
+            "pass_hash": pw_hash,
+            #Ma khoi phuc
+            "recovery_code_hash": recovery_code_hash,
+            #Them so lan that bai + thoi gian khoa
+            "failed_attempts": 0,
+            "lock_until": None
         }
 
         with open(USER_DB, "w", encoding="utf-8") as f:
@@ -101,5 +109,10 @@ class RegisterFrame(tk.Frame):
 
         messagebox.showinfo("Thành công", "Đăng ký thành công!")
         log_event(f"Đăng ký thành công: {email}")
+        
+        messagebox.showwarning("Mã khôi phục", f"Hãy lưu mã khôi phục này cẩn thận:\n\n{recovery_code}\n\n(Mã này chỉ hiển thị một lần!)")
+        log_event(f"Mã khôi phục {email}: {recovery_code}")
+        
         self.master.show_frame("LoginFrame")
         generate_rsa_keys(email, pw)
+        create_recovery_encrypted_key(email, pw, recovery_code)

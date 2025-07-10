@@ -4,7 +4,7 @@ import json
 from datetime import datetime
 import cv2 # Thư viện OpenCV để đọc mã QR
 from config import KEY_FOLDER, PUBLIC_KEY_BOOK # Thư viện cấu hình chứa đường dẫn thư mục khóa và sổ public key
-
+from PIL import Image
 def generate_qr_for_public_key(email):
     path = f"{KEY_FOLDER}/{email}_info.json"
     try:
@@ -23,9 +23,10 @@ def generate_qr_for_public_key(email):
     }
 
     data_str = json.dumps(payload) # Chuyển đổi payload thành chuỗi JSON
+    
     img = qrcode.make(data_str)
-
     img_path = f"{KEY_FOLDER}/{email}_qrcode.png"
+    # img = img.resize((400, 400), resample=Image.NEAREST)  # Resize BEFORE saving
     img.save(img_path)
 
     return True, img_path

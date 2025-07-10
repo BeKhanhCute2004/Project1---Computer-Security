@@ -4,6 +4,7 @@ from panels.qr_panel import QRPanel
 from panels.update_info_panel import UpdateInfoPanel
 from panels.encrypt_panel import EncryptPanel
 from panels.decrypt_panel import DecryptPanel
+from panels.find_pubkey_panel import FindPublicKeyPanel
 
 class DashboardFrame(tk.Frame):
     def __init__(self, master):
@@ -20,6 +21,7 @@ class DashboardFrame(tk.Frame):
             ("Trạng thái khóa", self.show_key_status),
             ("QR Public Key", self.show_qr),
             ("Cập nhật tài khoản", self.show_update_info),
+            ("Tìm khóa công khai", self.show_find_key),
             ("Đăng xuất", self.logout)
         ]
 
@@ -84,6 +86,12 @@ class DashboardFrame(tk.Frame):
         self.update_info_panel = UpdateInfoPanel(self.content, user_email=self.master.current_user)
         self.update_info_panel.pack(fill="both", expand=True)
 
+    #Show trang tim theo email
+    def show_find_key(self):
+        self.clear_content()
+        self.find_key_panel = FindPublicKeyPanel(self.content)
+        self.find_key_panel.pack(fill="both", expand=True)
+
     def clear_content(self):
         # Xóa nội dung bên phải
         for widget in self.content.winfo_children(): 
@@ -93,4 +101,4 @@ class DashboardFrame(tk.Frame):
         self.clear_content()
         # Đặt lại user hiện tại và quay về màn hình đăng nhập
         self.master.current_user = None
-        self.master.show_frame("LoginFrame")
+        self.master.show_frame("LoginFrame")    

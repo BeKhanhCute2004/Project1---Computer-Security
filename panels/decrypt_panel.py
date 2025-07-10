@@ -2,7 +2,7 @@ import tkinter as tk
 import json
 from tkinter import filedialog, simpledialog
 from utils.crypto_utils import decrypt_file
-
+from utils.combine_utils import decrypt_auto_detect
 class DecryptPanel(tk.Frame):
     def __init__(self, parent, user_email):
         super().__init__(parent)
@@ -22,7 +22,8 @@ class DecryptPanel(tk.Frame):
         if not passphrase:
             return
 
-        ok, result, meta = decrypt_file(self.file_path, self.user_email, passphrase)
+        ok, result, meta = decrypt_auto_detect(self.file_path, self.user_email, passphrase)
+        
         if ok:
             self.output.insert(tk.END, f"Đã giải mã thành công:\nLưu tại: {result}\n")
             self.output.insert(tk.END, f"Thông tin:\n{json.dumps(meta, indent=2)}\n")

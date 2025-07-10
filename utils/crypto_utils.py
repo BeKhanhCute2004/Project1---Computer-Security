@@ -14,6 +14,7 @@ def generate_rsa_keys(email: str, passphrase: str):
     private_key = key.export_key()
     public_key = key.publickey().export_key() 
 
+    
     # === Mã hóa private key bằng AES ===
     salt = get_random_bytes(16)
     aes_key = PBKDF2(passphrase, salt, dkLen=32, count=100_000)  # sinh key từ pass và salt trộn 100.000 lần
@@ -79,10 +80,18 @@ def reencrypt_private_key(email, old_pass, new_pass):
         json.dump(new_enc, f, indent=2)
 
 def load_private_key(email, passphrase):
+    print(f"📥 [DEBUG] Tải khóa riêng từ: {email}_private_enc.json")
     with open(f"{KEY_FOLDER}/{email}_private_enc.json", "r") as f:
         enc = json.load(f)
+
+    
+    print("🔐 [DEBUG] Dữ liệu mã hóa khóa riêng:")
+    for key in ("salt", "nonce", "tag"):
+        print(f"    {key}: {enc.get(key)}")
+    
     salt = b64decode(enc["salt"])
     key = PBKDF2(passphrase, salt, dkLen=32, count=100_000)
+    print(f"🔑 [DEBUG] Khóa AES sinh từ passphrase (PBKDF2) (len={len(key)}): {key.hex()}")
     cipher = AES.new(key, AES.MODE_GCM, nonce=b64decode(enc["nonce"]))
     private_key = cipher.decrypt_and_verify(b64decode(enc["ciphertext"]), b64decode(enc["tag"]))
     return RSA.import_key(private_key)
@@ -95,6 +104,8 @@ def encrypt_file(sender_email, recipient_email, file_path, out_folder="encrypted
         return False, "Không tìm thấy public key người nhận."
 
     pub_key = RSA.import_key(b64decode(keybook[recipient_email]["public_key"]))
+    # print("🧷 [DEBUG] Public key modulus (n):", pub_key.n)
+    # print("🧷 [DEBUG] Public key exponent (e):", pub_key.e)
     ksession = get_random_bytes(32)
     iv = get_random_bytes(12)
     cipher_aes = AES.new(ksession, AES.MODE_GCM, nonce=iv)
@@ -132,21 +143,31 @@ def encrypt_file(sender_email, recipient_email, file_path, out_folder="encrypted
 
 def decrypt_file(file_path, user_email, passphrase):
     try:
+        # print(f"📂 [DEBUG] Bắt đầu giải mã file: {file_path}")
         with open(file_path, "r", encoding="utf-8") as f:
             data = json.load(f)
         metadata = data["metadata"]
+        # print("📑 [DEBUG] Metadata trong file:")
+        # for k, v in metadata.items():
+        #     print(f"    {k}: {v}")
+
         ciphertext = b64decode(data["ciphertext"])
 
         rsa_key = load_private_key(user_email, passphrase)
+        # print("🧷 [DEBUG] Public key modulus (n):", rsa_key.n)
+        # print("🧷 [DEBUG] Public key modulus (n):", rsa_key.e)
+        
         cipher_rsa = PKCS1_OAEP.new(rsa_key)
+        # print("🔑 [DEBUG] Bắt đầu giải mã khóa phiên (session key)...")
         ksession = cipher_rsa.decrypt(b64decode(metadata["enc_ksession"]))
-
+        # print(f"✅ [DEBUG] Session key: {ksession.hex()}")
         cipher = AES.new(ksession, AES.MODE_GCM, nonce=b64decode(metadata["aes_iv"]))
         plaintext = cipher.decrypt_and_verify(ciphertext, b64decode(metadata["aes_tag"]))
 
         out_name = "decrypted_" + metadata["original_filename"]
         with open(out_name, "wb") as f:
             f.write(plaintext)
+        # print(f"✅ [DEBUG] Đã giải mã nội dung file thành: {out_name}")
         log_event(f"Đã giải mã file '{os.path.basename(file_path)}' từ '{metadata['sender']}'")
 
         return True, out_name, metadata
