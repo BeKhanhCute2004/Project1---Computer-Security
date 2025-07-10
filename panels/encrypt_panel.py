@@ -7,7 +7,7 @@ class EncryptPanel(tk.Frame):
         super().__init__(parent)
         self.user_email = user_email
         self.file_path = None
-        self.encrypt_mode = tk.StringVar(value="separate")
+        self.encrypt_mode = tk.StringVar(value="combine")
 
         tk.Label(self, text="Mã hóa và gửi tập tin", font=("Segoe UI", 14)).pack(pady=10)
 

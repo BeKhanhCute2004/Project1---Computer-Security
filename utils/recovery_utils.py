@@ -43,8 +43,8 @@ def decrypt_private_key_in_recovery(email, recovery_code):
         enc = json.load(f)
     try: 
         # print("Nội dung file backup:")
-        for k in ("salt", "nonce", "tag", "ciphertext"):
-            print(f"   - {k}: {enc.get(k, '❌ thiếu')}")
+        # for k in ("salt", "nonce", "tag", "ciphertext"):
+        #     print(f"   - {k}: {enc.get(k, 'thiếu')}")
         salt = b64decode(enc["salt"])
         nonce = b64decode(enc["nonce"])
         tag = b64decode(enc["tag"])
@@ -81,28 +81,28 @@ def recover_account(email, recovery_code, new_passphrase):
         with open(USER_DB, "r", encoding="utf-8") as f:
             users = json.load(f)
     except FileNotFoundError:
-        return False, "❌ Không tìm thấy cơ sở dữ liệu người dùng."
+        return False, "Không tìm thấy cơ sở dữ liệu người dùng."
 
     user = users.get(email)
     if not user:
-        return False, "❌ Email không tồn tại."
+        return False, "Email không tồn tại."
 
     stored_hash = user.get("recovery_code_hash")
     if not stored_hash:
-        return False, "❌ Tài khoản này không có hoặc đã dùng mã khôi phục."
+        return False, "Tài khoản này không có hoặc đã dùng mã khôi phục."
 
     input_hash = hash_recovery_code(recovery_code)
     if input_hash != stored_hash:
-        return False, "❌ Mã khôi phục không đúng."
+        return False, "Mã khôi phục không đúng."
 
     # Bắt đầu giải mã khóa cũ và mã hóa lại bằng passphrase mới
     try:
         private_key = decrypt_private_key_in_recovery(email, recovery_code)  # Đảm bảo hàm này đọc _recovery.json
         if not isinstance(private_key, bytes):
-            return False, "❌ Lỗi: private key không hợp lệ."
+            return False, "Lỗi: private key không hợp lệ."
         reencrypt_private_key(email, new_passphrase, private_key)
     except Exception as e:
-        return False, f"❌ {e}"
+        return False, f"{e}"
 
 
     # Cập nhật pass_hash mới
@@ -121,7 +121,7 @@ def recover_account(email, recovery_code, new_passphrase):
     # print("Recovery code nhập:", recovery_code)
     # print("Hash recovery code nhập:", hash_recovery_code(recovery_code))
     # print("Hash recovery code đã lưu:", user.get("recovery_code_hash"))
-    return True, "✅ Khôi phục tài khoản và đổi passphrase thành công!"
+    return True, "Khôi phục tài khoản và đổi passphrase thành công!"
 
 def create_recovery_encrypted_key(email: str, passphrase: str, recovery_code: str):
     """
@@ -132,7 +132,7 @@ def create_recovery_encrypted_key(email: str, passphrase: str, recovery_code: st
         private_key = load_private_key(email, passphrase)
         private_key_bytes = private_key.export_key()
     except Exception as e:
-        print(f"❌ Không thể load khóa riêng: {e}")
+        print(f"Không thể load khóa riêng: {e}")
         return False, f"Lỗi giải mã khóa riêng bằng passphrase: {e}"
 
     try:
@@ -141,4 +141,4 @@ def create_recovery_encrypted_key(email: str, passphrase: str, recovery_code: st
     except Exception as e:
         return False, f"Lỗi mã hóa bằng recovery code: {e}"
 
-    return True, "✅ Đã mã hóa khóa riêng bằng recovery code thành công."
+    return True, "Đã mã hóa khóa riêng bằng recovery code thành công."
